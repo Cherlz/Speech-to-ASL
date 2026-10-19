@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s2a"
+version = "0.1.0"
+description = "Speech/Text-to-ASL low-fidelity prototype: our own text-to-gloss model + pose-based sign visualization"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "torch>=2.1",
+    "tokenizers>=0.15",
+    "sacrebleu>=2.3",
+    "opencv-python-headless",
+    "pillow",
+]
+
+[project.optional-dependencies]
+speech = ["openai-whisper"]
+extract = ["mediapipe>=0.10.14"]
+pose-format = ["pose-format"]
+dev = ["pytest"]
+
+[project.scripts]
+s2a = "s2a.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["s2a*"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:enable_nested_tensor is True"]
