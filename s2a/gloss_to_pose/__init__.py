@@ -7,11 +7,12 @@ from s2a.gloss_to_pose.pose import SignPose
 
 SIGN_SECONDS = 1.0  # cap for a lexical sign
 LETTER_SECONDS = 0.35  # cap for one fingerspelled letter
-PUNCTUATION = set(".,!?;:'\"-")
+PUNCTUATION = set(".,!?;:'\"")
 
 
 def gloss_to_pose(gloss: str, lexicon: Lexicon, fingerspell: bool = True) -> tuple[SignPose, list[Match]]:
-    matches = [lexicon.lookup(g, fingerspell) for g in gloss.split() if not set(g) <= PUNCTUATION]
+    tokens = [g.strip("".join(PUNCTUATION)) or g for g in gloss.split()]
+    matches = [lexicon.lookup(g, fingerspell) for g in tokens if not set(g) <= PUNCTUATION]
     clips, caps, labels = [], [], []
     for m in matches:
         cap = SIGN_SECONDS if m.kind == "sign" else LETTER_SECONDS

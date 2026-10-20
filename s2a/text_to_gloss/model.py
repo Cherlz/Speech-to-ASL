@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import asdict, dataclass
 
 import torch
 from torch import nn
+
+# Harmless PyTorch notice about a speed optimization that norm_first models can't use.
+warnings.filterwarnings("ignore", message="enable_nested_tensor is True")
 
 
 @dataclass

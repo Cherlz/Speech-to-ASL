@@ -4,6 +4,7 @@
     s2a text-to-video --text "My name is Ivy." --video out.mp4
     s2a speech-to-video --audio question.wav --video out.mp4
     s2a lexicon-add --lexicon data/lexicon --gloss HELLO --video hello.mp4
+    s2a demo                     # browser demo with text box + microphone
 """
 from __future__ import annotations
 
@@ -86,6 +87,12 @@ def main(argv=None):
     p.add_argument("--kind", default="sign", choices=["sign", "letter"])
     p.add_argument("--source", default="", help="where the clip came from (dataset / signer, for licensing)")
 
+    p = sub.add_parser("demo", help="open a browser demo (type or speak, see gloss + animation)")
+    p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--model", default=None, help="trained model directory (default: models/text2gloss)")
+    p.add_argument("--lexicon", nargs="*", default=None, help="extra lexicon directories")
+    p.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
+
     args = parser.parse_args(argv)
 
     if args.command == "text-to-gloss":
@@ -100,6 +107,10 @@ def main(argv=None):
         text = transcribe(args.audio, args.whisper_model)
         print(f"transcript: {text}", file=sys.stderr)
         print(json.dumps(_text_to_outputs(text, args), indent=2))
+    elif args.command == "demo":
+        from s2a.demo import serve
+
+        serve(args.port, args.model, args.lexicon, open_browser=not args.no_browser)
     elif args.command == "lexicon-add":
         from s2a.gloss_to_pose.lexicon import add_entry
         from s2a.gloss_to_pose.pose import SignPose

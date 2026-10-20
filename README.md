@@ -41,6 +41,15 @@ python -m s2a.text_to_gloss.evaluate --data data/aslg --split test --glosser rul
 - Useful flags: `--d-model`, `--layers`, `--heads`, `--epochs`, `--max-tokens` and `--max-steps` (for quick experiments).
 - The data format is two aligned text files per split. To use a different or better dataset, write it in the same layout.
 
+## Quick demo (no training needed: the trained model is in `models/text2gloss`)
+
+```bash
+pip install -e .
+s2a demo
+```
+
+This opens a page in your browser. Type a sentence, or click **🎤 Speak**, which works in Chrome, Edge and Safari. The page shows the gloss, how each word was covered, and the signing animation. Press `Ctrl+C` in Terminal to stop it.
+
 ## 2. Translate
 
 ```bash
