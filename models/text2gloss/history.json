@@ -1,0 +1,52 @@
+[
+  {
+    "bleu": 18.6,
+    "chrf": 36.85,
+    "wer": 65.8,
+    "exact_match": 1.6,
+    "epoch": 1,
+    "step": 364,
+    "train_loss": 6.392538779093057,
+    "minutes": 9.156167372067769
+  },
+  {
+    "bleu": 75.91,
+    "chrf": 86.71,
+    "wer": 14.72,
+    "exact_match": 41.0,
+    "epoch": 2,
+    "step": 728,
+    "train_loss": 3.1708977276721075,
+    "minutes": 7.454370713233947
+  },
+  {
+    "bleu": 89.57,
+    "chrf": 94.67,
+    "wer": 5.41,
+    "exact_match": 69.4,
+    "epoch": 3,
+    "step": 1092,
+    "train_loss": 1.9195049435697313,
+    "minutes": 6.764335962136586
+  },
+  {
+    "bleu": 92.03,
+    "chrf": 96.4,
+    "wer": 4.47,
+    "exact_match": 74.8,
+    "epoch": 4,
+    "step": 1456,
+    "train_loss": 1.5886012353287173,
+    "minutes": 6.898069894313812
+  },
+  {
+    "bleu": 93.39,
+    "chrf": 97.07,
+    "wer": 3.49,
+    "exact_match": 78.4,
+    "epoch": 5,
+    "step": 1820,
+    "train_loss": 1.484268821330612,
+    "minutes": 6.706146363417307
+  }
+]
