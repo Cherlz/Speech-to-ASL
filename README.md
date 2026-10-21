@@ -111,11 +111,6 @@ open cheryl.gif
 ```
 The text in quotes after `--text` is what gets translated. The name after `--video` is the file it creates and must end in `.gif` or `.mp4`.
 
-## Getting the latest version
-Your downloaded folder does **not** update by itself when the GitHub repo changes. To update:
-1. Quit Terminal. Delete the old `Speech-to-ASL-main` folder and `.zip` from Downloads, then **Empty Trash**.
-2. Repeat **Steps 2–7**. It's faster the second time because the big downloads are cached.
-
 ## Troubleshooting
 
 | What you see | What it means and what to do |
