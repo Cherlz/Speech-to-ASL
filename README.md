@@ -30,11 +30,16 @@ python3 --version
 - If a popup asks to install "command line developer tools", click **Install**.
 
 ### Step 2: Download the project
-1. Open https://github.com/Cherlz/Speech-to-ASL. You must be logged in to GitHub with access to the repo.
+1. Open https://github.com/Cherlz/Speech-to-ASL. You don't need a GitHub account.
 2. Click the green **`<> Code`** button → **Download ZIP**.
 3. Open **Downloads** in Finder and **double-click** `Speech-to-ASL-main.zip`. A folder called `Speech-to-ASL-main` appears.
 
-> Why not `git clone`? The repo is private, so `git clone` asks for a GitHub login, and normal passwords don't work there. The ZIP avoids that. If you already use GitHub Desktop or a GitHub token, cloning works too.
+> **Already use git?** You can clone instead of downloading the ZIP. The folder is then called `Speech-to-ASL`, so use `cd ~/Downloads/Speech-to-ASL` in Step 3:
+> ```bash
+> cd ~/Downloads
+> git clone https://github.com/Cherlz/Speech-to-ASL.git
+> ```
+> To get the latest changes later, run `git pull` inside the folder.
 
 ### Step 3: Go into the project folder
 ```bash
@@ -115,7 +120,7 @@ The text in quotes after `--text` is what gets translated. The name after `--vid
 
 | What you see | What it means and what to do |
 |---|---|
-| `Username for 'https://github.com'` | You used `git clone` on the private repo. Press **Control + C** and use the ZIP download (Step 2) instead. |
+| `Username for 'https://github.com'` | The repo link is mistyped, so GitHub thinks it's a private repo. Press **Control + C** and check the link, or use the ZIP download (Step 2). |
 | `command not found: s2a` or `command not found: python` | The virtual environment isn't active, or the install didn't finish. Run Step 5, check for `(.venv)`, then Step 6. |
 | `no such file or directory: .venv/bin/activate` | Step 4 didn't run, or you're in the wrong folder. Run Step 3, then Step 4. |
 | `does not appear to be a Python project` | You're in the wrong folder. Run Step 3 first. |
