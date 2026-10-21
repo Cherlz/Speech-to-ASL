@@ -29,40 +29,37 @@ python3 --version
 - If it shows 3.9 or `command not found`, install Python from https://www.python.org/downloads/, then close and reopen Terminal.
 - If a popup asks to install "command line developer tools", click **Install**.
 
-### Step 2: Make sure you have ~3 GB of free space
-Go to Apple menu  → **System Settings** → **General** → **Storage**. The AI library (PyTorch) is big. If you're low on space, empty the Trash and delete old downloads first.
-
-### Step 3: Download the project
+### Step 2: Download the project
 1. Open https://github.com/Cherlz/Speech-to-ASL. You must be logged in to GitHub with access to the repo.
 2. Click the green **`<> Code`** button → **Download ZIP**.
 3. Open **Downloads** in Finder and **double-click** `Speech-to-ASL-main.zip`. A folder called `Speech-to-ASL-main` appears.
 
 > Why not `git clone`? The repo is private, so `git clone` asks for a GitHub login, and normal passwords don't work there. The ZIP avoids that. If you already use GitHub Desktop or a GitHub token, cloning works too.
 
-### Step 4: Go into the project folder
+### Step 3: Go into the project folder
 ```bash
 cd ~/Downloads/Speech-to-ASL-main
 ```
 
-### Step 5: Create the project's private Python space (a "virtual environment")
+### Step 4: Create the project's private Python space (a "virtual environment")
 ```bash
 python3 -m venv .venv
 ```
 This makes a hidden `.venv` folder that keeps the project's tools separate from the rest of your Mac.
 
-### Step 6: Activate it (step inside the space)
+### Step 5: Activate it (step inside the space)
 ```bash
 source .venv/bin/activate
 ```
-✅ Your Terminal line should now start with **`(.venv)`**. If it doesn't, don't continue. Go back to Step 4.
+✅ Your Terminal line should now start with **`(.venv)`**. If it doesn't, don't continue. Go back to Step 3.
 
-### Step 7: Install everything (2–5 minutes)
+### Step 6: Install everything (2–5 minutes)
 ```bash
 pip install -e .
 ```
 ✅ Wait until the last lines say **`Successfully installed ...`**.
 
-### Step 8: Start the demo
+### Step 7: Start the demo
 ```bash
 s2a demo
 ```
@@ -117,17 +114,16 @@ The text in quotes after `--text` is what gets translated. The name after `--vid
 ## Getting the latest version
 Your downloaded folder does **not** update by itself when the GitHub repo changes. To update:
 1. Quit Terminal. Delete the old `Speech-to-ASL-main` folder and `.zip` from Downloads, then **Empty Trash**.
-2. Repeat **Steps 3–8**. It's faster the second time because the big downloads are cached.
+2. Repeat **Steps 2–7**. It's faster the second time because the big downloads are cached.
 
 ## Troubleshooting
 
 | What you see | What it means and what to do |
 |---|---|
-| `No space left on device` | Your disk is full. Free about 3 GB (Step 2), run `python3 -m pip cache purge`, then delete the broken setup with `rm -rf .venv` and redo Steps 5–7. |
-| `Username for 'https://github.com'` | You used `git clone` on the private repo. Press **Control + C** and use the ZIP download (Step 3) instead. |
-| `command not found: s2a` or `command not found: python` | The virtual environment isn't active, or the install didn't finish. Run Step 6, check for `(.venv)`, then Step 7. |
-| `no such file or directory: .venv/bin/activate` | Step 5 didn't run, or you're in the wrong folder. Run Step 4, then Step 5. |
-| `does not appear to be a Python project` | You're in the wrong folder. Run Step 4 first. |
+| `Username for 'https://github.com'` | You used `git clone` on the private repo. Press **Control + C** and use the ZIP download (Step 2) instead. |
+| `command not found: s2a` or `command not found: python` | The virtual environment isn't active, or the install didn't finish. Run Step 5, check for `(.venv)`, then Step 6. |
+| `no such file or directory: .venv/bin/activate` | Step 4 didn't run, or you're in the wrong folder. Run Step 3, then Step 4. |
+| `does not appear to be a Python project` | You're in the wrong folder. Run Step 3 first. |
 | `Address already in use` | The demo is already running in another Terminal window. Use that one, or run `s2a demo --port 8001`. |
 | Browser didn't open | Open Chrome and go to **http://localhost:8000** yourself. |
 | 🎤 button greyed out or not working | Use Chrome, and allow microphone access (the lock icon in the address bar → Microphone → Allow). |
@@ -136,9 +132,9 @@ Your downloaded folder does **not** update by itself when the GitHub repo change
 ## Windows notes
 Use **Command Prompt** instead of Terminal, with the same steps except:
 - Step 1: `py --version`
-- Step 4: `cd %USERPROFILE%\Downloads\Speech-to-ASL-main`
-- Step 5: `py -m venv .venv`
-- Step 6: `.venv\Scripts\activate`
+- Step 3: `cd %USERPROFILE%\Downloads\Speech-to-ASL-main`
+- Step 4: `py -m venv .venv`
+- Step 5: `.venv\Scripts\activate`
 - Stop the demo with **Ctrl + C**.
 
 ---
