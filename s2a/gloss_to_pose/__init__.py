@@ -19,5 +19,5 @@ def gloss_to_pose(gloss: str, lexicon: Lexicon, fingerspell: bool = True) -> tup
         for i, path in enumerate(m.clips):
             clips.append(SignPose.load(path))
             caps.append(cap)
-            labels.append(m.gloss if m.kind == "sign" else f"{m.gloss} ({path.stem[0]})")
+            labels.append(m.key if m.kind == "sign" else f"{m.key} ({path.stem[0]})")
     return concatenate(clips, caps, labels=labels), matches

@@ -240,7 +240,7 @@ s2a demo --lexicon data/lexicon
 - Each clip is `(frames, 75, 3)` keypoints plus per-point confidence, which A2S can reuse for recognition.
 - How gloss is matched to clips (`s2a/gloss_to_pose/lexicon.py`):
   - Markers are stripped, so `DESC-FAR` is looked up as `FAR`.
-  - ASLG pronouns map to index signs, so `X-I` becomes `IX-1`.
+  - ASLG pronouns map to pointing, possessive and reflexive signs, so `X-I` becomes `IX-1`, `X-MY` becomes `POSS-1` and `X-MYSELF` becomes `SELF-1`. Name captions drop the tag, so `X-IVY` is shown as `IVY`.
   - `IX-*`, `POSS-*` and `SELF-*` are never fingerspelled.
 - Candidate sign sources: WLASL, ASL Citizen (check their licenses), or recordings of fluent signers made with their consent.
 

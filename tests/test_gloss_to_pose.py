@@ -73,6 +73,17 @@ def test_pronouns_map_to_index_and_are_never_spelled(lexicon):
     assert normalize_gloss("DESC-FAR") == "FAR"
     assert lexicon.lookup("X-I").kind == "sign"
     assert lexicon.lookup("POSS-1").kind == "missing"  # not fingerspelled as P-O-S-S
+    assert normalize_gloss("X-MY") == "POSS-1"
+    assert lexicon.lookup("X-MY").kind == "missing"  # not fingerspelled as M-Y
+    assert normalize_gloss("X-Y") == "POSS-3PL"  # ASLG's mangled "their"
+
+
+def test_name_captions_drop_the_x_tag(tmp_path):
+    for letter in "ABC":
+        add_entry(tmp_path, make_pose(), letter, kind="letter")
+    pose, matches = gloss_to_pose("X-CAB", Lexicon([tmp_path]))
+    assert matches[0].kind == "fingerspell"
+    assert {label for label in pose.labels if label} == {"CAB (A)", "CAB (B)", "CAB (C)"}
 
 
 def test_gloss_to_pose_skips_punctuation(lexicon):

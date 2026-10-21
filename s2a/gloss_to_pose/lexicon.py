@@ -24,14 +24,23 @@ DEFAULT_LEXICON = Path(__file__).resolve().parents[2] / "assets" / "fingerspelli
 
 @dataclass
 class Match:
-    gloss: str
+    gloss: str  # as produced by the model, e.g. X-MY
     kind: str  # "sign" | "fingerspell" | "missing"
     clips: list[Path]
+    key: str = ""  # normalized lexicon key, e.g. POSS-1; used for captions
 
 
-# ASLG-PC12 writes pronouns as X-<english word>; map them to the IX (index/pointing) convention.
-PRONOUNS = {"X-I": "IX-1", "X-ME": "IX-1", "X-YOU": "IX-2", "X-HE": "IX-3", "X-SHE": "IX-3", "X-IT": "IX-3",
-            "X-WE": "WE", "X-US": "WE", "X-THEY": "IX-3PL", "X-THEM": "IX-3PL"}
+# ASLG-PC12 writes pronouns as X-<word> (sometimes mangled, e.g. X-Y = "their"). Map them to
+# index (IX), possessive (POSS) and reflexive (SELF) signs so they are never fingerspelled.
+PRONOUNS = {
+    "X-I": "IX-1", "X-ME": "IX-1", "X-YOU": "IX-2", "X-HE": "IX-3", "X-SHE": "IX-3", "X-IT": "IX-3",
+    "X-WE": "IX-1PL", "X-US": "IX-1PL", "X-THEY": "IX-3PL", "X-THEM": "IX-3PL",
+    "X-MY": "POSS-1", "X-YOUR": "POSS-2", "X-HIS": "POSS-3", "X-HER": "POSS-3", "X-ITS": "POSS-3",
+    "X-OUR": "POSS-1PL", "X-OURS": "POSS-1PL", "X-Y": "POSS-3PL", "X-THEIR": "POSS-3PL", "X-IRS": "POSS-3PL",
+    "X-POSS": "POSS",  # English 's
+    "X-MYSELF": "SELF-1", "X-YOURSELF": "SELF-2", "X-HIMSELF": "SELF-3", "X-HERSELF": "SELF-3",
+    "X-ITSELF": "SELF-3", "X-OURSELVES": "SELF-1PL", "X-MSELVES": "SELF-3PL", "X-THEMSELVES": "SELF-3PL",
+}
 # Pointing / possessive / reflexive signs: never fingerspell these.
 REFERENTIAL = re.compile(r"^(IX|POSS|SELF)(-|$)")
 
@@ -69,12 +78,12 @@ class Lexicon:
     def lookup(self, gloss: str, fingerspell: bool = True) -> Match:
         key = normalize_gloss(gloss)
         if key in self.signs:
-            return Match(gloss, "sign", [self.signs[key]])
+            return Match(gloss, "sign", [self.signs[key]], key)
         # Fingerspell words with no known sign (names, rare words, ...).
         letters = [c for c in key if c.isalpha()]
         if fingerspell and letters and not REFERENTIAL.match(key) and all(c in self.letters for c in letters):
-            return Match(gloss, "fingerspell", [self.letters[c] for c in letters])
-        return Match(gloss, "missing", [])
+            return Match(gloss, "fingerspell", [self.letters[c] for c in letters], key)
+        return Match(gloss, "missing", [], key)
 
 
 def add_entry(directory: str | Path, pose: SignPose, gloss: str, kind: str = "sign", source: str = "") -> Path:
