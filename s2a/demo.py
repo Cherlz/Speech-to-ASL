@@ -1,4 +1,4 @@
-"""A local browser demo: type or speak English, see the ASL gloss and the signing animation.
+"""A local browser demo: type ASL gloss (or English / speech), see the signing animation.
 
     s2a demo            # opens http://localhost:8000
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>S2A Demo</title>
+<title>ASL Gloss Demo</title>
 <style>
   :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --accent:#2f6fde; --line:#e3e1dc;
           --sign:#1f8a4c; --spell:#b7791f; --miss:#c53030; }
@@ -50,29 +50,30 @@ PAGE = """<!doctype html>
   .legend { font-size:13px; color:var(--muted); margin-top:10px; }
 </style></head>
 <body><main>
-  <h1>Speech / Text &rarr; ASL</h1>
-  <p class="sub">Low-fidelity prototype &middot; English &rarr; ASL gloss (our Transformer) &rarr; sign poses &rarr; animation</p>
+  <h1>ASL Gloss   <h1>Speech / Text &rarr; ASL</h1>rarr; Signing</h1>
+  <p class="sub">Low-fidelity prototype &middot; ASL gloss &rarr; sign video poses &rarr; stick-figure animation</p>
 
   <div class="card">
-    <div class="row">
-      <input id="text" type="text" placeholder="Type an English sentence..." value="My name is Cheryl.">
-      <button id="mic" class="ghost" title="Speak instead of typing">&#127908; Speak</button>
-      <button id="go" class="primary">Translate</button>
-    </div>
-    <div class="examples">Try:
-      <a>Where is the library?</a><a>The children went to school yesterday.</a><a>I like pizza.</a>
-    </div>
-    <div class="row" style="margin-top:12px; align-items:center; gap:12px">
-      <label class="examples" style="margin:0">Glosser
+    <div class="row" style="margin-bottom:12px; align-items:center; gap:12px">
+      <label class="examples" style="margin:0">Input
+        <select id="mode"><option value="gloss">ASL gloss</option><option value="english">English (via text&rarr;gloss model)</option></select>
+      </label>
+      <label id="glosserBox" class="examples" style="margin:0; display:none">Glosser
         <select id="glosser"><option value="model">Our model</option><option value="rules">Rule baseline</option></select>
       </label>
-      <span id="status" class="status"></span>
     </div>
+    <div class="row">
+      <input id="text" type="text">
+      <button id="mic" class="ghost" title="Speak instead of typing" style="display:none">&#127908; Speak</button>
+      <button id="go" class="primary">Translate</button>
+    </div>
+    <div id="examples" class="examples"></div>
+    <div id="status" class="status" style="margin-top:8px"></div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <div class="label">Heard / typed</div><div id="heard">&mdash;</div>
+      <div id="heardBox"><div class="label">Heard / typed</div><div id="heard">&mdash;</div></div>
       <div class="label" style="margin-top:16px">ASL gloss</div><div id="gloss" class="gloss">&mdash;</div>
       <div class="label" style="margin-top:16px">Lexicon coverage</div><div id="coverage">&mdash;</div>
       <div class="legend"><span class="chip sign">sign</span><span class="chip fingerspell">fingerspelled</span><span class="chip missing">missing</span></div>
@@ -82,6 +83,25 @@ PAGE = """<!doctype html>
 </main>
 <script>
 const $ = id => document.getElementById(id);
+const MODES = {
+  gloss: { placeholder: "Type ASL gloss, e.g. HELLO IX-1 NAME CHERYL", value: "HELLO IX-1 NAME CHERYL",
+           examples: ["HELLO IX-1 NAME CHERYL", "LIBRARY WHERE", "IX-2 LIKE PIZZA", "THANK-YOU"] },
+  english: { placeholder: "Type an English sentence...", value: "My name is Cheryl.",
+             examples: ["Where is the library?", "The children went to school yesterday.", "I like pizza."] },
+};
+function setMode(mode) {
+  const m = MODES[mode];
+  $("text").placeholder = m.placeholder; $("text").value = m.value;
+  $("examples").innerHTML = "Try: ";
+  for (const ex of m.examples) {
+    const a = document.createElement("a"); a.textContent = ex;
+    a.onclick = () => { $("text").value = ex; translate(); }; $("examples").appendChild(a);
+  }
+  const english = mode === "english";
+  $("glosserBox").style.display = english ? "" : "none";
+  $("mic").style.display = english && Recognition ? "" : "none";
+  $("heardBox").style.display = english ? "" : "none";
+}
 async function translate() {
   const text = $("text").value.trim();
   if (!text) return;
@@ -89,7 +109,7 @@ async function translate() {
   $("go").disabled = true;
   try {
     const res = await fetch("/translate", { method: "POST", headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ text, glosser: $("glosser").value }) });
+                                            body: JSON.stringify({ text, mode: $("mode").value, glosser: $("glosser").value }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
     $("heard").textContent = data.text;
@@ -110,11 +130,10 @@ async function translate() {
 }
 $("go").onclick = translate;
 $("text").addEventListener("keydown", e => { if (e.key === "Enter") translate(); });
-document.querySelectorAll(".examples a").forEach(a => a.onclick = () => { $("text").value = a.textContent; translate(); });
-
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!Recognition) { $("mic").disabled = true; $("mic").title = "Speech input needs Chrome, Edge or Safari"; }
-else {
+$("mode").onchange = () => setMode($("mode").value);
+setMode("gloss");
+if (Recognition) {
   const rec = new Recognition(); rec.lang = "en-US"; rec.interimResults = true;
   rec.onresult = e => { $("text").value = Array.from(e.results).map(r => r[0].transcript).join(""); };
   rec.onend = () => { $("mic").classList.remove("recording"); $("mic").innerHTML = "&#127908; Speak"; translate(); };
@@ -127,10 +146,10 @@ else {
 
 class DemoApp:
     def __init__(self, model_dir=None, lexicons=None):
-        from s2a.gloss_to_pose.lexicon import DEFAULT_LEXICON, Lexicon
+        from s2a.gloss_to_pose.lexicon import Lexicon, default_lexicons
 
         self.model_dir = model_dir
-        self.lexicon = Lexicon([*(lexicons or []), DEFAULT_LEXICON])
+        self.lexicon = Lexicon(default_lexicons(lexicons))
         self.glossers = {}
         self.lock = threading.Lock()
 
@@ -141,12 +160,12 @@ class DemoApp:
             self.glossers[name] = load_glosser(name, self.model_dir, beam=5)
         return self.glossers[name]
 
-    def translate(self, text: str, glosser: str = "model") -> dict:
+    def translate(self, text: str, glosser: str = "model", mode: str = "english") -> dict:
         from s2a.gloss_to_pose import gloss_to_pose
         from s2a.pose_to_video import write_video
 
         with self.lock:  # torch + OpenCV are not worth parallelizing for a local demo
-            gloss = self.glosser(glosser).translate(text)
+            gloss = text.upper() if mode == "gloss" else self.glosser(glosser).translate(text)
             pose, matches = gloss_to_pose(gloss, self.lexicon)
             gif = None
             if len(pose):
@@ -179,7 +198,8 @@ def make_handler(app: DemoApp):
                 text = str(req.get("text", "")).strip()[:500]
                 if not text:
                     raise ValueError("empty text")
-                result = app.translate(text, "rules" if req.get("glosser") == "rules" else "model")
+                result = app.translate(text, "rules" if req.get("glosser") == "rules" else "model",
+                                       "gloss" if req.get("mode") == "gloss" else "english")
                 self._send(200, json.dumps(result).encode(), "application/json")
             except Exception as e:  # report errors to the page instead of dropping the connection
                 self._send(400, json.dumps({"error": str(e)}).encode(), "application/json")

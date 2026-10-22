@@ -2,6 +2,8 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 data/aslg/
+data/lexicon/
+data/WLASL_v0.3.json
 models/*
 !models/text2gloss/
 *.log

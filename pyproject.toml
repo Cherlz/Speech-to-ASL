@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "s2a"
 version = "0.1.0"
-description = "Speech/Text-to-ASL low-fidelity prototype: our own text-to-gloss model + pose-based sign visualization"
+description = "ASL gloss -> sign video poses -> stick-figure animation (plus a prototype text-to-gloss model)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,11 +15,12 @@ dependencies = [
     "sacrebleu>=2.3",
     "opencv-python-headless",
     "pillow",
+    "mediapipe>=0.10.14",  # sign video -> body/hand landmarks
+    "yt-dlp",  # WLASL videos hosted on YouTube
 ]
 
 [project.optional-dependencies]
 speech = ["openai-whisper"]
-extract = ["mediapipe>=0.10.14"]
 pose-format = ["pose-format"]
 dev = ["pytest"]
 

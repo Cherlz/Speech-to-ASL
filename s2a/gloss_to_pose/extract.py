@@ -1,6 +1,8 @@
 """Video -> pose extraction with MediaPipe Holistic (used to build the motion database).
 
-Requires `pip install mediapipe` and the holistic model file, which is downloaded on first use.
+Only body and hand keypoints are kept: no pixels and no face mesh, so the signer's face and
+identity are not stored. Requires `pip install mediapipe`; the holistic model file is
+downloaded on first use.
 """
 from __future__ import annotations
 
@@ -24,7 +26,8 @@ def _model_path() -> Path:
     return MODEL_PATH
 
 
-def video_to_pose(video_path: str | Path) -> SignPose:
+def video_to_pose(video_path: str | Path, frame_start: int = 1, frame_end: int = -1) -> SignPose:
+    """Extract poses from frames frame_start..frame_end (1-based, inclusive; -1 = until the end)."""
     import cv2
     import mediapipe as mp
     from mediapipe.tasks.python import BaseOptions, vision
@@ -42,8 +45,11 @@ def video_to_pose(video_path: str | Path) -> SignPose:
         i = 0
         while True:
             ok, frame = cap.read()
-            if not ok:
+            if not ok or (frame_end > 0 and i + 1 > frame_end):
                 break
+            if i + 1 < frame_start:
+                i += 1
+                continue
             image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             result = landmarker.detect_for_video(image, int(i * 1000 / fps))
             data = np.zeros((NUM_KEYPOINTS, 3), np.float32)
