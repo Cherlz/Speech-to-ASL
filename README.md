@@ -1,32 +1,42 @@
-# S2A: Speech/Text → ASL (low-fidelity prototype)
+# S2A: ASL Gloss → Sign → Stick Figure (low-fidelity prototype)
 
-Type or say an English sentence. The program turns it into **ASL gloss** using **our own AI model**, then shows a stick figure signing it.
+Type an **ASL gloss** sentence like `TOMORROW IX-1 WANT GO SCHOOL`. The program finds a **real ASL sign** for each word, keeps only the **body and hand movement** (no faces), and shows a **stick figure** signing the whole sentence.
 
-![The S2A demo page](docs/demo.png)
+This is **Team 2's** part of the Speech → ASL pipeline:
+
+```
+Team 1:  🎤 Speech → 📝 Text → 🗣️ T5 Transformer → ASL gloss  (e.g. TOMORROW IX-1 WANT GO SCHOOL)
+                                                         │
+Team 2:                                                  ▼
+         📖 sign dictionary → 🦴 body + hand dots → 🔗 join signs → 🕺 stick figure
+```
+
+![The demo page](docs/demo.png)
 
 - [Part 1: Run the demo (step by step, no experience needed)](#part-1-run-the-demo)
-- [Part 2: How it works](#part-2-how-it-works)
-- [Part 3: Results and data sources](#part-3-results-and-data-sources)
-- [Part 4: For developers](#part-4-for-developers)
-- [Current limitations](#current-limitations) · [Next steps for the team](#next-steps-for-the-s2a-team)
+- [Part 2: Build the sign dictionary](#part-2-build-the-sign-dictionary)
+- [Part 3: How it works](#part-3-how-it-works)
+- [Part 4: Data sources](#part-4-data-sources)
+- [Part 5: For developers](#part-5-for-developers)
+- [Current limitations](#current-limitations) · [Next steps for Team 2](#next-steps-for-team-2)
 
 ---
 
 # Part 1: Run the demo
 
-You **don't** need to train anything. The trained model is already included. These steps are for a **Mac**. Windows users should see the [Windows notes](#windows-notes).
+These steps are for a **Mac**. Windows users should see the [Windows notes](#windows-notes).
 
 > ⚠️ **Paste ONE command at a time.** Press **Enter**, and wait until you see the `%` prompt again before pasting the next one. If you paste several lines together, Terminal can treat them as answers to the previous command and things break.
 
-## First time only (about 10 minutes)
+## First time only (about 10–15 minutes)
 
 ### Step 1: Check you have Python
 Open **Terminal**: press **⌘ Command + Space**, type `Terminal`, then press **Enter**. Paste:
 ```bash
 python3 --version
 ```
-- If it shows **Python 3.10 or higher**, you're good.
-- If it shows 3.9 or `command not found`, install Python from https://www.python.org/downloads/, then close and reopen Terminal.
+- If it shows **Python 3.10 or higher**, you're good (3.11 or 3.12 is safest).
+- If it shows 3.9 or `command not found`, install Python 3.12 from https://www.python.org/downloads/, then close and reopen Terminal.
 - If a popup asks to install "command line developer tools", click **Install**.
 
 ### Step 2: Download the project
@@ -58,7 +68,7 @@ source .venv/bin/activate
 ```
 ✅ Your Terminal line should now start with **`(.venv)`**. If it doesn't, don't continue. Go back to Step 3.
 
-### Step 6: Install everything (2–5 minutes)
+### Step 6: Install everything (3–8 minutes)
 ```bash
 pip install -e .
 ```
@@ -71,11 +81,14 @@ s2a demo
 ✅ Terminal says `S2A demo running at http://localhost:8000` and your browser opens the demo page.
 
 ## Using the demo
-- Type a sentence and press **Translate**, or press **Enter**.
-- Click **🎤 Speak** to say a sentence out loud. This works best in **Chrome**. Click **Allow** when it asks for the microphone.
+- The **Input** dropdown is set to **ASL gloss**. Type gloss words in CAPITALS, separated by spaces, and press **Translate** (or **Enter**).
 - Click one of the **"Try:"** examples.
-- Use the **Glosser** dropdown to compare **our model** with the simple **rule baseline**.
-- The colored chips show how each word was handled: 🟢 **sign** (real sign from our dictionary), 🟠 **fingerspelled** (spelled letter by letter), 🔴 **missing**.
+- The colored chips show how each word was handled:
+  - 🟢 **sign:** a real sign from the dictionary
+  - 🟠 **fingerspelled:** spelled letter by letter, because there's no sign for it yet
+  - 🔴 **missing:** skipped (for example a pointing sign like `IX-1` with no clip yet)
+- Until you [build the sign dictionary](#part-2-build-the-sign-dictionary), every word shows 🟠, because only the A–Z alphabet is included.
+- Switch **Input** to **English** to try the whole pipeline. A stand-in text → gloss model turns your sentence into gloss first, and the 🎤 **Speak** button appears.
 
 > **Keep Terminal open while you use the demo.** Terminal is the "engine". If you close it, the page stops working.
 
@@ -102,19 +115,76 @@ source .venv/bin/activate
 s2a demo
 ```
 
-## Other things you can try (with `(.venv)` active)
-Translate English into gloss only:
+---
+
+# Part 2: Build the sign dictionary
+
+The **sign dictionary** links each gloss word to the movement of a real ASL sign. Building it is the main job of Team 2. For each word, the builder:
+
+1. 🔎 finds the word in **WLASL**, a research collection of 2,000 ASL words and 21,000 sign videos
+2. ⬇️ downloads a video of a real person signing it
+3. 👀 uses **MediaPipe** to find the body and finger positions ("dots") in every frame
+4. ✅ checks the person and hands were clearly visible, and tries another video if not
+5. 💾 saves **only the dots** into `data/lexicon/`
+6. 🗑️ **deletes the video**, so no faces or identities are kept
+
+Do this with `(.venv)` active (Steps 3 and 5 above), and stop the demo first if it's running.
+
+### Add specific words
 ```bash
-s2a text-to-gloss --text "Where is the library?"
+s2a lexicon-wlasl --glosses tomorrow me want go school hello name my you
 ```
-Save a signing animation as a GIF and open it:
+Each word takes a few seconds. You'll see lines like:
+```
+[3/9] WANT: saved
+[4/9] GO: skipped one video (HTTPError: HTTP Error 404: Not Found)
+[4/9] GO: saved
+```
+Some videos are no longer online. "Skipped one video" is normal: the builder just tries the next one.
+
+### Or add the 100 most common words (about 10–20 minutes)
 ```bash
-s2a text-to-video --text "My name is Cheryl." --video cheryl.gif
+s2a lexicon-wlasl --top 100
+```
+
+### Check what's in the dictionary
+```bash
+s2a lexicon-list
+```
+
+### Try it
+```bash
+s2a demo
+```
+Type `TOMORROW IX-1 WANT GO SCHOOL`. The words should now be 🟢 **signs**. `IX-1` ("me") uses the **ME** sign.
+
+You can also save a GIF instead of using the demo:
+```bash
+s2a gloss-to-video --gloss "TOMORROW IX-1 WANT GO SCHOOL" --video tomorrow.gif
 ```
 ```bash
-open cheryl.gif
+open tomorrow.gif
 ```
-The text in quotes after `--text` is what gets translated. The name after `--video` is the file it creates and must end in `.gif` or `.mp4`.
+
+### Notes
+- The first run downloads MediaPipe's model file (about 13 MB) once.
+- Running the same command again **skips words that are already in the dictionary**, so it's safe to stop (**Control + C**) and start again.
+- Words that aren't in WLASL are listed as "Not in WLASL (skipped)". Those will still be fingerspelled.
+- WLASL videos on YouTube are downloaded with `yt-dlp`, which installs automatically in Step 6.
+
+### Using your own videos
+If your team records signs (with the signer's permission), name each file after its gloss and put them in one folder:
+```
+my_signs/HELLO.mp4
+my_signs/NAME.mp4
+my_signs/THANK-YOU.mp4
+my_signs/HELLO__take2.mp4      ← extra takes: add __ and anything after the gloss
+```
+Then run:
+```bash
+s2a lexicon-folder --videos my_signs
+```
+Your original videos are **not** deleted. Only the dots are copied into the dictionary.
 
 ## Troubleshooting
 
@@ -124,9 +194,10 @@ The text in quotes after `--text` is what gets translated. The name after `--vid
 | `command not found: s2a` or `command not found: python` | The virtual environment isn't active, or the install didn't finish. Run Step 5, check for `(.venv)`, then Step 6. |
 | `no such file or directory: .venv/bin/activate` | Step 4 didn't run, or you're in the wrong folder. Run Step 3, then Step 4. |
 | `does not appear to be a Python project` | You're in the wrong folder. Run Step 3 first. |
+| `No matching distribution found for mediapipe` | Your Python version is too new or too old. Install Python 3.12 (Step 1), delete the `.venv` folder (`rm -rf .venv`), then redo Steps 4–6. |
+| `NO usable video found` for a word | None of the tried videos for that word could be downloaded or read. Try `s2a lexicon-wlasl --glosses WORD` again later, or record your own video. |
 | `Address already in use` | The demo is already running in another Terminal window. Use that one, or run `s2a demo --port 8001`. |
 | Browser didn't open | Open Chrome and go to **http://localhost:8000** yourself. |
-| 🎤 button greyed out or not working | Use Chrome, and allow microphone access (the lock icon in the address bar → Microphone → Allow). |
 | `[notice] A new release of pip is available` | Harmless. Ignore it. |
 
 ## Windows notes
@@ -139,141 +210,156 @@ Use **Command Prompt** instead of Terminal, with the same steps except:
 
 ---
 
-# Part 2: How it works
+# Part 3: How it works
 
-The pipeline is a relay race with four steps:
-
+## Building the dictionary (done once, ahead of time)
 ```
-🎤 "Where is the library?"
-   │  1. Speech → text   (browser speech recognition, or OpenAI Whisper on the command line)
-📝 Where is the library?
-   │  2. Text → gloss    ← OUR OWN AI MODEL (a Transformer we trained from scratch)
-🔤 WHERE BE LIBRARY ?
-   │  3. Gloss → poses   (look up each word in the lexicon; fingerspell if it's not there)
-🦴 body + hand keypoints, frame by frame
-   │  4. Poses → video   (draw a stick figure)
-🎬 animation
+"SCHOOL"
+   │ 📋 look up "school" in WLASL's list (humans already labelled every video with its word)
+   ▼
+ video link → ⬇️ download
+   │ 🎞️ OpenCV splits the video into frames
+   ▼
+ frame 1, frame 2, frame 3 ...
+   │ 👀 MediaPipe finds 75 dots in each frame (33 body + 21 per hand)
+   ▼
+ 💾 save the dots as signs/SCHOOL.npz   🗑️ delete the video
+```
+
+## Gloss → stick figure (every time you press Translate)
+```
+"TOMORROW IX-1 WANT GO SCHOOL"
+   │ ✂️ 1. split into words
+   ▼
+[TOMORROW] [IX-1] [WANT] [GO] [SCHOOL]
+   │ 🔎 2. look up each word: real sign 🟢 → else fingerspell A–Z 🟠 → else skip 🔴
+   ▼
+ dots for each sign (each from a different person and camera)
+   │ 📏 3. same size & position: shoulders centred and the same width for every sign
+   │ ✂️ 4. trim the "hands resting" parts at the start and end of each clip
+   │ ⏩ 5. speed up slow dictionary signs (max ~1 s per sign, ~0.35 s per letter)
+   │ 🔗 6. add a short 0.2 s slide between signs so the hands don't teleport
+   ▼
+ 🎨 7. draw lines between the dots, frame by frame → 🕺 one stick figure signing the sentence
 ```
 
 **Key words**
-- **Gloss:** a written form of ASL that uses English words in CAPITALS, following ASL grammar. It's the middle step between English and signing.
-- **Model:** the AI. It learned English → gloss from about 82,000 example pairs. That learning is called **training**.
-- **Pose:** the position of the body and fingers in one video frame, stored as 75 points (33 body points and 21 for each hand).
-- **Lexicon:** our sign dictionary, linking a gloss word to a pose recording of that sign. Right now it has **only the alphabet A–Z**, so every word is fingerspelled. Adding whole-word signs is the most useful next step.
+- **Gloss:** ASL written as CAPITAL English words in ASL order. `IX-1` means pointing at yourself ("me"), and `IX-2` means "you".
+- **Pose / dots:** where the body and finger joints are in one video frame, 75 points per frame.
+- **MediaPipe:** a free Google tool (a machine-learning model) that finds those dots in pictures. We use it ready-made.
+- **Sign dictionary (lexicon):** the saved dots for each gloss word, in `data/lexicon/`, plus the A–Z alphabet in `assets/fingerspelling/`.
 
-This project follows the design of [sign-language-processing/spoken-to-signed-translation](https://github.com/sign-language-processing/spoken-to-signed-translation). The main difference is step 2: they use hand-written rules or external services, and **we train our own neural network**.
+**Privacy:** MediaPipe can also give 468 detailed face points. We throw those away and keep only the body and hand points, plus a few rough head points (nose, eyes, ears) so the head's position is known. Videos are deleted after the dots are extracted, and the stick figure's head is a plain circle. So no one's face or identity is kept, and every sign can later be put onto one standard avatar.
 
 | Step | Code | Ours or reused |
 |---|---|---|
-| Speech → text | `s2a/speech_to_text.py`, demo page | Reused (Whisper / browser) |
-| Text → gloss | `s2a/text_to_gloss/` | **Ours**: tokenizer and Transformer encoder-decoder, trained from scratch in PyTorch |
-| Gloss → pose | `s2a/gloss_to_pose/` | Ours: lexicon lookup, fingerspelling fallback, smooth stitching |
-| Video → pose (for adding signs) | `s2a/gloss_to_pose/extract.py` | Google MediaPipe |
-| Pose → video | `s2a/pose_to_video.py` | Ours (stick figure) |
-| Demo page | `s2a/demo.py` | Ours (Python server, HTML/CSS/JavaScript page) |
+| Find and download sign videos | `s2a/gloss_to_pose/build.py` | Ours (WLASL index; `yt-dlp` for YouTube) |
+| Video → dots | `s2a/gloss_to_pose/extract.py` | Google MediaPipe |
+| Gloss → dictionary lookup | `s2a/gloss_to_pose/lexicon.py` | Ours |
+| Same size, trim, speed up, join | `s2a/gloss_to_pose/concatenate.py` | Ours |
+| Dots → stick figure | `s2a/pose_to_video.py` | Ours |
+| Demo page | `s2a/demo.py` | Ours (Python server + HTML/CSS/JavaScript) |
+| *(stand-in for Team 1)* English → gloss | `s2a/text_to_gloss/` | A small Transformer trained from scratch, until Team 1's model is connected |
 
-**Languages:** Python for everything, plus HTML/CSS/JavaScript for the demo page. Main libraries: PyTorch, Hugging Face `tokenizers`, NumPy, OpenCV and sacrebleu.
+The design follows [sign-language-processing/spoken-to-signed-translation](https://github.com/sign-language-processing/spoken-to-signed-translation).
 
 ---
 
-# Part 3: Results and data sources
-
-## How good is the model?
-Scores on the 1,000-sentence ASLG-PC12 **test set**, which the model never saw during training:
-
-| | Rule baseline | **Our model** |
-|---|---|---|
-| BLEU (higher is better, max 100) | 22.8 | **94.3** |
-| Word error rate (lower is better) | 47.9% | **2.8%** |
-| Sentences exactly right | 2.2% | **81.2%** |
-
-The model has 7.6M parameters and was trained for 5 epochs, which took about 40 minutes on a laptop-class CPU. Training history is in `models/text2gloss/history.json`.
-
-⚠️ These scores measure agreement with ASLG-PC12's gloss, **not** whether a Deaf signer would find the output correct. See [Current limitations](#current-limitations).
-
-## Where the data comes from
-1. **Training sentences: ASLG-PC12** (Othman & Jemni, 2012). About 87,000 English/ASL-gloss pairs built from European Parliament text. We use the train/dev/test split published with Yin & Read (2020), [kayoyin/transformer-slt](https://github.com/kayoyin/transformer-slt). It is downloaded by `scripts/prepare_aslg.py` and not stored in this repo.
+# Part 4: Data sources
+1. **WLASL** (Li et al., 2020): 2,000 ASL glosses and about 21,000 sign videos, [dxli94/WLASL](https://github.com/dxli94/WLASL). Licensed under the **Computational Use of Data Agreement (C-UDA)**, for research and computational use. The builder downloads the index file (`data/WLASL_v0.3.json`) and the videos on your computer. Neither the videos nor the extracted dictionary are stored in this repo.
 2. **Fingerspelling A–Z poses:** from [sign.mt](https://sign.mt), via the MIT-licensed spoken-to-signed-translation project. They were converted to our format in `assets/fingerspelling/`, and the license is in that folder.
+3. **ASLG-PC12** (Othman & Jemni, 2012), only for the stand-in text → gloss model. About 87,000 English/gloss pairs, downloaded by `scripts/prepare_aslg.py` and not stored in this repo.
 
 ---
 
-# Part 4: For developers
-
-## Install options
-```bash
-pip install -e ".[dev]"       # + pytest
-pip install -e ".[speech]"    # + Whisper, for `s2a speech-to-video` (also needs ffmpeg)
-pip install -e ".[extract]"   # + MediaPipe, for `s2a lexicon-add --video`
-```
-
-## Train or evaluate the text → gloss model
-```bash
-python scripts/prepare_aslg.py                     # download ASLG-PC12 → data/aslg/
-python -m s2a.text_to_gloss.train --data data/aslg --out models/text2gloss --epochs 5 --warmup 800
-python -m s2a.text_to_gloss.evaluate --data data/aslg --split test --model models/text2gloss
-python -m s2a.text_to_gloss.evaluate --data data/aslg --split test --glosser rules   # baseline
-```
-- The architecture has 3 encoder and 3 decoder layers, d_model 256 and 4 heads, with a shared 8k BPE vocabulary and tied embeddings. It uses label smoothing, AdamW and a warmup + inverse-sqrt learning-rate schedule.
-- `--device auto` uses a GPU (CUDA or Apple MPS) when one is available.
-- To train on a better dataset, write it as `{train,dev,test}.en` and `{train,dev,test}.gloss`, one sentence per line, aligned line by line.
-- ⚠️ Training to the same `--out` folder **overwrites** the included model.
+# Part 5: For developers
 
 ## Command reference
 ```bash
-s2a demo [--port 8000] [--lexicon DIR ...]
+# Team 2: gloss → sign → stick figure
+s2a gloss-to-video --gloss "..." --video out.gif [--pose out.npz] [--lexicon DIR ...] [--no-fingerspell]
+s2a lexicon-wlasl  [--glosses w1 w2 ... | --glosses-file words.txt | --top 100] [--per-gloss 1] [--lexicon DIR]
+s2a lexicon-folder --videos DIR [--labels labels.csv] [--per-gloss 1] [--lexicon DIR]
+s2a lexicon-add    --gloss WORD (--video sign.mp4 | --pose-file sign.pose) [--source "..."] [--lexicon DIR]
+s2a lexicon-list   [--lexicon DIR ...]
+s2a demo           [--port 8000] [--lexicon DIR ...]
+
+# Full pipeline with the stand-in text → gloss model
 s2a text-to-gloss  --text "..." [--glosser model|rules] [--beam 5]
-s2a text-to-video  --text "..." --video out.gif [--pose out.npz] [--lexicon DIR ...] [--no-fingerspell]
-s2a speech-to-video --audio clip.wav --video out.gif
-s2a lexicon-add --lexicon DIR --gloss WORD (--video sign.mp4 | --pose-file sign.pose) [--source "..."]
+s2a text-to-video  --text "..." --video out.gif
+s2a speech-to-video --audio clip.wav --video out.gif      # needs: pip install -e ".[speech]" and ffmpeg
 ```
 
-## Growing the lexicon (shared motion database with A2S)
-A lexicon is a folder of `.npz` pose clips plus an `index.csv` (`path,gloss,kind,source`):
+## The sign dictionary format
+A lexicon is a folder with an `index.csv` (`path,gloss,kind,source`) and one `.npz` file per clip:
+- `data`: `(frames, 75, 3)` keypoints, x/y/z. The order is 33 MediaPipe body points, then 21 left-hand points, then 21 right-hand points.
+- `confidence`: `(frames, 75)`. 0 means the point wasn't detected.
+- `fps`: frames per second.
+
+The A2S team can load the same files for recognition.
+
+`lexicon-folder --labels` takes a CSV with `file,gloss` columns, plus optional `frame_start`, `frame_end` (1-based, inclusive) and `source`.
+
+How gloss is matched to clips (`s2a/gloss_to_pose/lexicon.py`):
+- Multi-word glosses use hyphens, so `THANK YOU` becomes `THANK-YOU`.
+- Pointing, possessive and reflexive glosses use the English pronoun's sign until dedicated clips exist: `IX-1` → `ME`, `IX-2` → `YOU`, `POSS-1` → `MY`, and so on. They're never fingerspelled.
+- ASLG-style markers from the stand-in model are normalized: `X-I` → `IX-1`, `X-MY` → `POSS-1`, `DESC-FAR` → `FAR`, `X-IVY` → `IVY`.
+
+## The stand-in text → gloss model
+A 7.6M-parameter Transformer encoder-decoder, trained from scratch on ASLG-PC12. On the test set it gets BLEU 94.3, and 81% of sentences exactly right, against BLEU 22.8 for a rule baseline. That only measures agreement with ASLG-PC12's rule-generated gloss, not real ASL quality. Team 1 owns this step. To retrain:
 ```bash
-s2a lexicon-add --lexicon data/lexicon --gloss HELLO --video hello.mp4 --source "signer name / dataset"
-s2a demo --lexicon data/lexicon
+pip install -e ".[dev]"
+python scripts/prepare_aslg.py
+python -m s2a.text_to_gloss.train --data data/aslg --out models/text2gloss --epochs 5 --warmup 800
+python -m s2a.text_to_gloss.evaluate --data data/aslg --split test --model models/text2gloss
 ```
-- Each clip is `(frames, 75, 3)` keypoints plus per-point confidence, which A2S can reuse for recognition.
-- How gloss is matched to clips (`s2a/gloss_to_pose/lexicon.py`):
-  - Markers are stripped, so `DESC-FAR` is looked up as `FAR`.
-  - ASLG pronouns map to pointing, possessive and reflexive signs, so `X-I` becomes `IX-1`, `X-MY` becomes `POSS-1` and `X-MYSELF` becomes `SELF-1`. Name captions drop the tag, so `X-IVY` is shown as `IVY`.
-  - `IX-*`, `POSS-*` and `SELF-*` are never fingerspelled.
-- Candidate sign sources: WLASL, ASL Citizen (check their licenses), or recordings of fluent signers made with their consent.
 
 ## Tests
 ```bash
+pip install -e ".[dev]"
 pytest -q
 ```
-The tests cover pose maths, lexicon lookup and fingerspelling, a model overfitting a toy dataset (checks training and decoding), and the end-to-end CLI.
+The tests cover:
+- pose maths
+- dictionary lookup, pronoun fallbacks and fingerspelling
+- the WLASL and folder builders, with MediaPipe and downloads replaced by stubs
+- the stand-in model
+- the command line
 
 ## Project layout
 ```
 s2a/
-  cli.py                 s2a command
-  demo.py                browser demo
-  speech_to_text.py      Whisper wrapper
-  text_to_gloss/         tokenizer, model, data, train, evaluate, rule baseline
-  gloss_to_pose/         pose format, lexicon, stitching, MediaPipe extraction
+  gloss_to_pose/
+    build.py             WLASL / folder → sign dictionary
+    extract.py           video → dots (MediaPipe)
+    lexicon.py           gloss → clip lookup
+    concatenate.py       normalize, trim, speed up, join signs
+    pose.py              the 75-point pose format
   pose_to_video.py       stick-figure renderer
-models/text2gloss/       trained model + tokenizer
-assets/fingerspelling/   A–Z pose clips
-scripts/prepare_aslg.py  dataset download
+  demo.py                browser demo
+  cli.py                 the `s2a` command
+  text_to_gloss/         stand-in text → gloss model (Team 1's step)
+  speech_to_text.py      Whisper wrapper (Team 1's step)
+assets/fingerspelling/   A–Z poses
+data/lexicon/            your built sign dictionary (created by the builders, not in git)
+models/text2gloss/       stand-in model
 tests/
 ```
 
 ---
 
 # Current limitations
-1. **ASLG-PC12 is not real ASL.** Its gloss was generated by rules from English, not written by signers. That's why outputs keep English words like `BE` and `TO`. We need a dataset checked by ASL experts, which is the stakeholder outreach from the 10/12 meeting.
-2. **The model copies ASLG's conventions:** `X-` pronouns, `DESC-` adjectives, and mostly English word order.
-3. **No facial expressions.** ASL grammar uses the face (questions, negation, etc.), and our poses only include the body and hands.
-4. **Stitched dictionary signs are not fluent signing.** There's no role shift, use of space or classifiers. This is a feasibility demo.
-5. **The lexicon only has A–Z**, so every word is currently fingerspelled.
-6. **Automatic scores are only a proxy.** We still need a human evaluation with fluent signers.
+1. **Dictionary signs are not fluent signing.** Each word is a separate, slowly signed dictionary clip. Real ASL uses space, facial grammar, role shift and classifiers, and signs blend into each other.
+2. **No facial expressions.** ASL grammar uses the face (for questions, negation, etc.), and the stick figure only has the body and hands.
+3. **Different signers.** Each sign may come from a different person. Normalizing size and position helps, but body shapes and signing styles still differ.
+4. **Pointing signs** (`IX-1`, `IX-2`…) use the English pronoun's dictionary sign for now.
+5. **Some WLASL links are dead**, and a few words may get a lower-quality clip. Watch the results and replace bad ones with your own recordings.
+6. **The joins between signs are straight-line slides**, not real human transitions.
 
-# Next steps for the S2A team
-- **Data:** find or build a better English↔gloss dataset with ASL experts, and agree on a gloss convention (IX-1/IX-2/IX-3, etc.).
-- **Model:** try other architectures and settings, and compare against fine-tuning a pretrained model such as T5.
-- **Lexicon:** collect whole-word sign videos and add them with `s2a lexicon-add`. Agree on the shared format with A2S.
-- **Visualization:** add the face, and a better avatar (3D or photoreal).
-- **Evaluation:** design a human evaluation with ASL stakeholders.
+# Next steps for Team 2
+- **Word list:** agree with Team 1 on the gloss format and the words to cover first, then build them.
+- **Quality check:** watch each sign and replace jumpy or wrong ones.
+- **Pointing signs:** record clips for `IX-1`, `IX-2` and `IX-3`.
+- **Face:** add a few face points back for expressions, without identity.
+- **Avatar:** map the dots onto one standard 3D or 2D avatar.
+- **ASL experts:** ask fluent signers to review the output.
