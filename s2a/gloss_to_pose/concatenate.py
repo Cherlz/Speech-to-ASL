@@ -49,7 +49,7 @@ def concatenate(poses: list[SignPose], max_seconds: list[float] | None = None, t
     labels = labels or [""] * len(poses)
     clips, clip_labels = [], []
     for pose, cap, label in zip(poses, max_seconds, labels):
-        pose = pose.normalized()
+        pose = pose.normalized().fill_gaps()
         if trim:
             pose = pose.slice(*active_span(pose))
         if pose.fps != fps:

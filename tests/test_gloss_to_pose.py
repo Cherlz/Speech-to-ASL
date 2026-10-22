@@ -34,6 +34,21 @@ def test_resample_keeps_endpoints():
     np.testing.assert_allclose(short.data[-1], pose.data[-1])
 
 
+def test_fill_gaps_bridges_short_dropouts_only():
+    from s2a.gloss_to_pose.pose import RIGHT_HAND
+
+    pose = make_pose(frames=30)
+    pose.data[:, RIGHT_HAND, 0] = np.arange(30)[:, None]  # the hand moves steadily to the right
+    pose.data[10:14, RIGHT_HAND] = 0
+    pose.confidence[10:14, RIGHT_HAND] = 0  # 4-frame dropout: filled
+    pose.confidence[20:, RIGHT_HAND] = 0  # lost until the end: stays empty
+    filled = pose.fill_gaps(max_gap=8)
+    assert (filled.confidence[10:14, RIGHT_HAND] > 0).all()
+    np.testing.assert_allclose(filled.data[10:14, RIGHT_HAND, 0], np.arange(10, 14)[:, None] * np.ones((1, 21)))
+    assert (filled.confidence[20:, RIGHT_HAND] == 0).all()
+    assert (pose.fill_gaps(max_gap=3).confidence[10:14, RIGHT_HAND] == 0).all()  # gap too long
+
+
 def test_active_span_finds_raised_hand():
     assert active_span(make_pose(), margin=0) == (5, 15)
 

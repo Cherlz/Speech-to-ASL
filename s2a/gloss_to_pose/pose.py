@@ -105,6 +105,22 @@ class SignPose:
             return self
         return SignPose((self.data - center) / width, conf.copy(), self.fps)
 
+    def fill_gaps(self, max_gap: int = 8) -> "SignPose":
+        """Interpolate body parts that MediaPipe lost for a few frames (e.g. a blurred hand).
+
+        Each part (body, left hand, right hand) is filled only across gaps of at most `max_gap`
+        frames that have detections on both sides; longer gaps and missing starts/ends stay empty.
+        """
+        data, conf = self.data.copy(), self.confidence.copy()
+        for part in (slice(0, NUM_BODY), LEFT_HAND, RIGHT_HAND):
+            seen = np.flatnonzero(conf[:, part].max(axis=1) > 0)
+            for a, b in zip(seen, seen[1:]):
+                if 1 < b - a <= max_gap + 1:
+                    t = (np.arange(a + 1, b) - a)[:, None, None] / (b - a)
+                    data[a + 1:b, part] = data[a, part] * (1 - t) + data[b, part] * t
+                    conf[a + 1:b, part] = np.minimum(conf[a, part], conf[b, part])
+        return SignPose(data, conf, self.fps, self.labels)
+
     def resample(self, num_frames: int) -> "SignPose":
         """Linearly time-resample to num_frames, keeping fps (i.e. speeds the sign up or down)."""
         if num_frames == len(self) or len(self) < 2:
