@@ -54,11 +54,20 @@ def test_active_span_finds_raised_hand():
 
 
 def test_concatenate_adds_transitions_and_labels():
-    out = concatenate([make_pose(), make_pose()], transition_seconds=0.2, labels=["A", "B"])
-    sign = 10 + 2 * 3  # active span plus margins
-    assert len(out) == 2 * sign + 5
-    assert out.labels[:sign] == ["A"] * sign and out.labels[-sign:] == ["B"] * sign
-    assert out.labels[sign:sign + 5] == [""] * 5
+    out = concatenate([make_pose(), make_pose(), make_pose()], transition_seconds=0.2, labels=["A", "B", "C"])
+    sign = 10 + 2 * 1  # raised frames 5-14 plus a 1-frame margin on each side
+    rest = 4  # frames 0-3 before the hands rise, and 16-19 after they drop
+    assert len(out) == (rest + sign) + 5 + sign + 5 + (sign + rest)
+    assert out.labels.count("A") == rest + sign  # first sign keeps the hands rising from rest
+    assert out.labels.count("B") == sign  # middle sign: hands stay up, no rest in between
+    assert out.labels.count("C") == sign + rest  # last sign keeps the hands lowering
+    assert out.labels[rest + sign:rest + sign + 5] == [""] * 5
+
+
+def test_active_span_drops_raising_and_lowering():
+    pose = make_pose(frames=20, raised=range(5, 15))
+    pose.data[5, RIGHT_WRIST, 1] = pose.data[14, RIGHT_WRIST, 1] = 298  # just above the elbow: still on the way up / down
+    assert active_span(pose, margin=0) == (6, 14)
 
 
 def test_concatenate_caps_duration():
@@ -118,3 +127,15 @@ def test_save_load_roundtrip(tmp_path):
 def test_bundled_fingerspelling_lexicon_covers_alphabet():
     lexicon = Lexicon()
     assert sorted(lexicon.letters) == [chr(c) for c in range(ord("A"), ord("Z") + 1)]
+
+
+def test_transition_keeps_a_hand_seen_at_only_one_end():
+    from s2a.gloss_to_pose.concatenate import transition
+    from s2a.gloss_to_pose.pose import RIGHT_HAND
+
+    a, b = make_pose(), make_pose()
+    a.data[:, RIGHT_HAND] = 1.0
+    b.confidence[0, RIGHT_HAND] = 0  # tracker missed the hand on b's first frame
+    between = transition(a, b, 5)
+    assert (between.confidence[:, RIGHT_HAND] > 0).all()
+    np.testing.assert_allclose(between.data[:, RIGHT_HAND], 1.0)  # held where it was last seen
